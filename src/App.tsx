@@ -1,8 +1,11 @@
+import { AppProviders } from "./contexts/AppProviders";
+import MainPage from "./pages/MainPage";
+
 function App() {
   return (
-    <div className="flex">
-      <h2 className="text-4xl font-bold">Spinjoy App</h2>
-    </div>
+    <AppProviders>
+      <MainPage />
+    </AppProviders>
   );
 }
 

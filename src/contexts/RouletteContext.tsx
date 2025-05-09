@@ -5,7 +5,7 @@ import React, { createContext, useState, useEffect } from "react";
  */
 export interface RouletteItem {
   id: string;
-  text: string;
+  name: string;
 }
 
 /**
@@ -33,19 +33,22 @@ interface RouletteContextType {
   isSpinning: boolean;
   // 당첨 항목 자동 제거 옵션
   isAutoRemoveEnabled: boolean;
+  // 룰렛 회전 각도
+  spinAngle: number;
+  // 현재 룰렛의 항목 목록
+  items: RouletteItem[];
 
   // 액션 함수들
   createNewRoulette: (name: string) => void;
-  addItem: (text: string) => void;
+  addItem: (item: { name: string }) => void;
   removeItem: (id: string) => void;
-  updateItem: (id: string, text: string) => void;
+  updateItem: (id: string, update: { name: string }) => void;
   clearItems: () => void;
-  saveCurrentRoulette: () => void;
+  saveCurrentRoulette: (name: string) => void;
   loadRoulette: (id: string) => void;
   deleteRoulette: (id: string) => void;
-  spinRoulette: () => Promise<RouletteItem | null>;
+  spinRoulette: () => void;
   setSelectedItem: (item: RouletteItem | null) => void;
-  removeSelectedItem: () => void;
   setIsAutoRemoveEnabled: (enabled: boolean) => void;
 }
 
@@ -79,6 +82,9 @@ export function RouletteProvider({ children }: { children: React.ReactNode }) {
   const [isAutoRemoveEnabled, setIsAutoRemoveEnabled] =
     useState<boolean>(false);
 
+  // 룰렛 회전 각도
+  const [spinAngle, setSpinAngle] = useState<number>(0);
+
   // LocalStorage에서 저장된 룰렛 목록 불러오기
   useEffect(() => {
     const loadedRoulettes = localStorage.getItem("spinjoy_roulettes");
@@ -106,12 +112,12 @@ export function RouletteProvider({ children }: { children: React.ReactNode }) {
   };
 
   // 항목 추가
-  const addItem = (text: string) => {
-    if (!text.trim()) return;
+  const addItem = (item: { name: string }) => {
+    if (!item.name.trim()) return;
 
     const newItem: RouletteItem = {
       id: crypto.randomUUID(),
-      text: text.trim(),
+      name: item.name.trim(),
     };
 
     setCurrentRoulette((prev) => {
@@ -142,15 +148,15 @@ export function RouletteProvider({ children }: { children: React.ReactNode }) {
   };
 
   // 항목 수정
-  const updateItem = (id: string, text: string) => {
-    if (!text.trim()) return;
+  const updateItem = (id: string, update: { name: string }) => {
+    if (!update.name.trim()) return;
 
     setCurrentRoulette((prev) => {
       if (!prev) return prev;
       return {
         ...prev,
         items: prev.items.map((item) =>
-          item.id === id ? { ...item, text: text.trim() } : item,
+          item.id === id ? { ...item, name: update.name.trim() } : item,
         ),
         updatedAt: Date.now(),
       };
@@ -158,7 +164,9 @@ export function RouletteProvider({ children }: { children: React.ReactNode }) {
 
     // 선택된 항목이었다면 선택 상태도 업데이트
     if (selectedItem?.id === id) {
-      setSelectedItem((prev) => (prev ? { ...prev, text: text.trim() } : null));
+      setSelectedItem((prev) =>
+        prev ? { ...prev, name: update.name.trim() } : null,
+      );
     }
   };
 
@@ -176,18 +184,26 @@ export function RouletteProvider({ children }: { children: React.ReactNode }) {
   };
 
   // 현재 룰렛 저장
-  const saveCurrentRoulette = () => {
+  const saveCurrentRoulette = (name: string) => {
     if (!currentRoulette) return;
+
+    // 이름이 변경되었으면 업데이트
+    const updatedRoulette = {
+      ...currentRoulette,
+      name: name.trim() || currentRoulette.name,
+      updatedAt: Date.now(),
+    };
 
     // 이미 저장된 룰렛이면 업데이트, 아니면 추가
     const updatedRoulettes = savedRoulettes.some(
-      (r) => r.id === currentRoulette.id,
+      (r) => r.id === updatedRoulette.id,
     )
       ? savedRoulettes.map((r) =>
-          r.id === currentRoulette.id ? currentRoulette : r,
+          r.id === updatedRoulette.id ? updatedRoulette : r,
         )
-      : [...savedRoulettes, currentRoulette];
+      : [...savedRoulettes, updatedRoulette];
 
+    setCurrentRoulette(updatedRoulette);
     setSavedRoulettes(updatedRoulettes);
 
     // LocalStorage에 저장
@@ -235,51 +251,51 @@ export function RouletteProvider({ children }: { children: React.ReactNode }) {
   };
 
   // 룰렛 회전 및 결과 선택
-  const spinRoulette = async (): Promise<RouletteItem | null> => {
-    if (isSpinning || !currentRoulette?.items.length) return null;
+  const spinRoulette = () => {
+    if (isSpinning || !currentRoulette?.items.length) return;
 
     try {
       setIsSpinning(true);
       setSelectedItem(null);
 
-      // 회전 시간을 임의로 설정 (2~4초)
-      const spinDuration = Math.random() * 2000 + 2000;
+      // 새로운 각도 계산 (10-20바퀴 사이의 회전)
+      const spinCount = 10 + Math.random() * 10;
+      const newSpinAngle = spinAngle + spinCount * 360;
+      setSpinAngle(newSpinAngle);
 
-      // 비동기로 대기 (실제 애니메이션은 UI 컴포넌트에서 처리)
-      await new Promise((resolve) => setTimeout(resolve, spinDuration));
+      // 2.5-4초 후 결과 선택
+      const spinDuration = 2500 + Math.random() * 1500;
+      setTimeout(() => {
+        // 항목 랜덤 선택
+        const randomIndex = Math.floor(
+          Math.random() * currentRoulette.items.length,
+        );
+        const selected = currentRoulette.items[randomIndex];
 
-      // 항목 랜덤 선택
-      const randomIndex = Math.floor(
-        Math.random() * currentRoulette.items.length,
-      );
-      const selected = currentRoulette.items[randomIndex];
+        setSelectedItem(selected);
 
-      setSelectedItem(selected);
+        // 자동 제거 옵션이 켜져 있으면 선택된 항목 제거
+        if (isAutoRemoveEnabled && selected) {
+          setCurrentRoulette((prev) => {
+            if (!prev) return prev;
+            return {
+              ...prev,
+              items: prev.items.filter((item) => item.id !== selected.id),
+              updatedAt: Date.now(),
+            };
+          });
+        }
 
-      // 자동 제거 옵션이 켜져 있으면 선택된 항목 제거
-      if (isAutoRemoveEnabled && selected) {
-        setCurrentRoulette((prev) => {
-          if (!prev) return prev;
-          return {
-            ...prev,
-            items: prev.items.filter((item) => item.id !== selected.id),
-            updatedAt: Date.now(),
-          };
-        });
-      }
-
-      return selected;
-    } finally {
+        setIsSpinning(false);
+      }, spinDuration);
+    } catch (error) {
       setIsSpinning(false);
+      console.error("Error spinning roulette:", error);
     }
   };
 
-  // 선택된 항목 수동 제거
-  const removeSelectedItem = () => {
-    if (selectedItem) {
-      removeItem(selectedItem.id);
-    }
-  };
+  // 항목 목록 getter
+  const items = currentRoulette ? currentRoulette.items : [];
 
   // Context 값
   const value: RouletteContextType = {
@@ -288,6 +304,8 @@ export function RouletteProvider({ children }: { children: React.ReactNode }) {
     selectedItem,
     isSpinning,
     isAutoRemoveEnabled,
+    spinAngle,
+    items,
     createNewRoulette,
     addItem,
     removeItem,
@@ -298,7 +316,6 @@ export function RouletteProvider({ children }: { children: React.ReactNode }) {
     deleteRoulette,
     spinRoulette,
     setSelectedItem,
-    removeSelectedItem,
     setIsAutoRemoveEnabled,
   };
 

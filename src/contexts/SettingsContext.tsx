@@ -5,7 +5,7 @@ import React, { createContext, useState, useEffect } from "react";
  */
 interface SettingsData {
   // 사운드 활성화 여부
-  isSoundEnabled: boolean;
+  soundEnabled: boolean;
   // 테마 설정 (기본값: 라이트 모드)
   theme: "light" | "dark";
 }
@@ -14,17 +14,19 @@ interface SettingsData {
  * 설정 Context 타입 정의
  */
 interface SettingsContextType {
-  // 설정 상태
-  settings: SettingsData;
-  // 사운드 토글 함수
-  toggleSound: () => void;
+  // 사운드 활성화 여부
+  soundEnabled: boolean;
+  // 테마 설정 (기본값: 라이트 모드)
+  theme: "light" | "dark";
+  // 사운드 설정 변경 함수
+  setSoundEnabled: (enabled: boolean) => void;
   // 테마 토글 함수 (향후 다크 모드 지원 시 사용)
   toggleTheme: () => void;
 }
 
 // 기본 설정 값
 const DEFAULT_SETTINGS: SettingsData = {
-  isSoundEnabled: true,
+  soundEnabled: true,
   theme: "light",
 };
 
@@ -64,11 +66,11 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     }
   }, [settings]);
 
-  // 사운드 설정 토글
-  const toggleSound = () => {
+  // 사운드 설정 변경
+  const setSoundEnabled = (enabled: boolean) => {
     setSettings((prev) => ({
       ...prev,
-      isSoundEnabled: !prev.isSoundEnabled,
+      soundEnabled: enabled,
     }));
   };
 
@@ -82,8 +84,9 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
 
   // Context 값
   const value: SettingsContextType = {
-    settings,
-    toggleSound,
+    soundEnabled: settings.soundEnabled,
+    theme: settings.theme,
+    setSoundEnabled,
     toggleTheme,
   };
 
