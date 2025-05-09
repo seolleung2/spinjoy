@@ -43,14 +43,23 @@ const RouletteSection: React.FC = () => {
             </p>
           </div>
         ) : (
-          <div className="flex w-full flex-col items-center gap-6">
+          <div className="flex w-full flex-col items-center gap-8">
             {/* 룰렛 휠 컴포넌트 */}
-            <div className="relative aspect-square w-full max-w-md">
+            <div className="relative aspect-square w-full max-w-md overflow-hidden rounded-full border-4 border-gray-200 p-2 shadow-lg">
               <RouletteWheel />
+              <div className="pointer-events-none absolute top-0 left-0 z-0 flex h-full w-full items-center justify-center">
+                <div className="text-muted-foreground text-2xl font-bold opacity-20">
+                  SpinJoy
+                </div>
+              </div>
             </div>
 
-            {/* 결과 컴포넌트 */}
-            {selectedItem && <SpinResult />}
+            {/* 결과 컴포넌트 - 애니메이션 효과 추가 */}
+            {selectedItem && (
+              <div className="animate-fadeIn">
+                <SpinResult />
+              </div>
+            )}
           </div>
         )}
       </div>
